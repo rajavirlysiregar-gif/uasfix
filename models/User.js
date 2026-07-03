@@ -2,6 +2,18 @@ const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const { sequelize } = require('../config/db');
 
+module.exports = (sequelize) => {
+  const User = sequelize.define('User', {
+    // Properti kolom tabel Anda di sini, contoh:
+    username: {
+      type: DataTypes.STRING,
+      allowNull: false
+    }
+  });
+
+  return User;
+};
+
 const User = sequelize.define('User', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   name: { type: DataTypes.STRING, allowNull: false },
