@@ -11,7 +11,9 @@ const expressLayouts = require("express-ejs-layouts");
 const methodOverride = require("method-override");
 const { Server } = require("socket.io");
 
-const { sequelize } = require("./config/db");
+// PERBAIKAN: Import sequelize dan Product langsung dari pusat inisialisasi models/index.js
+const { sequelize, Product } = require("./models");
+
 const { attachUserToLocals } = require("./middleware/auth");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 const requestLogger = require("./middleware/logger");
@@ -52,11 +54,6 @@ app.use(flash());
 app.use(attachUserToLocals);
 
 // =====================
-// Load Models & Associations
-// =====================
-const { Product } = require("./models");
-
-// =====================
 // Routes
 // =====================
 app.get("/", (req, res) => res.redirect("/products"));
@@ -88,14 +85,12 @@ io.on("connection", (socket) => {
 });
 
 // =====================
-// Database Connection
+// Database Connection & Migration Logic
 // =====================
-const PORT = process.env.PORT || 3000;
-
 async function ensureOrderItemsSellerId() {
   const qi = sequelize.getQueryInterface();
   const tables = await qi.showAllTables();
-  if (!tables.includes("OrderItems")) return; // tabel belum ada -> sync akan buat dari awal, sudah benar
+  if (!tables.includes("OrderItems")) return; // tabel belum ada -> sync akan buat dari awal
 
   const columns = await qi.describeTable("OrderItems");
   if (columns.sellerId) return; // kolom sudah ada, tidak perlu perbaikan
@@ -129,6 +124,7 @@ async function ensureOrderItemsSellerId() {
   console.log("Perbaikan kolom OrderItems.sellerId selesai. Pesanan lama akan muncul kembali ke penjual.");
 }
 
+// Menjalankan autentikasi dan sinkronisasi database
 sequelize
   .authenticate()
   .then(() => {
@@ -137,14 +133,12 @@ sequelize
   })
   .then(() => {
     // alter:true supaya Sequelize otomatis menambahkan kolom/relasi baru
-    // ke tabel yang sudah lebih dulu ada di database, bukan cuma membuat
-    // tabel yang benar-benar baru.
     return sequelize.sync({ alter: true });
   })
   .then(async () => {
     console.log("Database Synced");
 
-    // Cek apakah tabel produk masih kosong (biasanya berarti belum di-seed)
+    // Cek apakah tabel produk masih kosong
     const totalProducts = await Product.count().catch(() => 0);
     if (totalProducts === 0) {
       console.log("  Database masih kosong (belum ada data produk).");
@@ -153,7 +147,8 @@ sequelize
     }
 
     const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
+    // Menggunakan server HTTP (bukan app.listen) agar Socket.IO terikat dengan benar
+    server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   })
