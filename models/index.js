@@ -10,6 +10,28 @@ const Review = require('./Review');
 const Wishlist = require('./Wishlist');
 const Message = require('./Message');
 const Notification = require('./Notification');
+const sequelize = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASSWORD,
+  {
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    dialect: 'mysql'
+  }
+);
+
+const db = {};
+
+// 2. Memasukkan instansi koneksi ke objek db
+db.Sequelize = Sequelize;
+db.sequelize = sequelize;
+
+// 3. Saat memanggil User.js, pastikan cara import di User.js disesuaikan, 
+// ATAU kirimkan instansi sequelize-nya ke dalam fungsi (jika model Anda berbentuk fungsi)
+db.User = require('./User')(sequelize, Sequelize); // <--- Pola standar Sequelize CLI jika model berupa fungsi
+
+module.exports = db;
 
 // =====================
 // Associations
