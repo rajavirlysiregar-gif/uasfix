@@ -1,15 +1,6 @@
-const { sequelize } = require('../config/db');
+const { Sequelize } = require('sequelize');
 
-const User = require('./User');
-const Category = require('./Category');
-const Product = require('./Product');
-const Cart = require('./Cart');
-const Order = require('./Order');
-const OrderItem = require('./OrderItem');
-const Review = require('./Review');
-const Wishlist = require('./Wishlist');
-const Message = require('./Message');
-const Notification = require('./Notification');
+// 1. Buat instansi koneksi Sequelize terlebih dahulu menggunakan ENV Railway
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USER,
@@ -17,24 +8,26 @@ const sequelize = new Sequelize(
   {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
-    dialect: 'mysql'
+    dialect: 'mysql',
+    logging: false // Ubah jadi console.log jika ingin melihat query SQL di log Railway
   }
 );
 
-const db = {};
-
-// 2. Memasukkan instansi koneksi ke objek db
-db.Sequelize = Sequelize;
-db.sequelize = sequelize;
-
-// 3. Saat memanggil User.js, pastikan cara import di User.js disesuaikan, 
-// ATAU kirimkan instansi sequelize-nya ke dalam fungsi (jika model Anda berbentuk fungsi)
-db.User = require('./User')(sequelize, Sequelize); // <--- Pola standar Sequelize CLI jika model berupa fungsi
-
-module.exports = db;
+// 2. Import model SETELAH instansi sequelize terbuat, dan passing instansinya jika model berupa fungsi
+// Catatan: Jika model Anda di dalam file (seperti User.js) tipenya BUKAN fungsi, ubah kodenya menjadi: require('./User')
+const User = typeof require('./User') === 'function' ? require('./User')(sequelize) : require('./User');
+const Category = typeof require('./Category') === 'function' ? require('./Category')(sequelize) : require('./Category');
+const Product = typeof require('./Product') === 'function' ? require('./Product')(sequelize) : require('./Product');
+const Cart = typeof require('./Cart') === 'function' ? require('./Cart')(sequelize) : require('./Cart');
+const Order = typeof require('./Order') === 'function' ? require('./Order')(sequelize) : require('./Order');
+const OrderItem = typeof require('./OrderItem') === 'function' ? require('./OrderItem')(sequelize) : require('./OrderItem');
+const Review = typeof require('./Review') === 'function' ? require('./Review')(sequelize) : require('./Review');
+const Wishlist = typeof require('./Wishlist') === 'function' ? require('./Wishlist')(sequelize) : require('./Wishlist');
+const Message = typeof require('./Message') === 'function' ? require('./Message')(sequelize) : require('./Message');
+const Notification = typeof require('./Notification') === 'function' ? require('./Notification')(sequelize) : require('./Notification');
 
 // =====================
-// Associations
+// Associations (Hubungan Antar Tabel)
 // =====================
 
 // Product belongs to Category & Seller (User)
@@ -92,6 +85,7 @@ Message.belongsTo(User, { foreignKey: 'receiverId', as: 'receiver' });
 User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
 Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+// 3. Export objek database tunggal agar bisa dipakai di server.js atau controller Anda
 module.exports = {
   sequelize,
   User,
